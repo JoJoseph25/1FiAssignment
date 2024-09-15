@@ -11,14 +11,15 @@ description = """
 1Fi API helps you to create User and verify email/phone number to login.
 
 You will be able to:
-* **Get Scripts** (GET /scripts/<_clientID_>).
-* **Add a Script** (POST /scripts/<_clientID_>).
+* **Get User Info** (GET /user).
+* **User SignUp** (POST /signup).
 
-* **Get Instances** (GET /instances/<_clientID_>).
-* **Get Credits Information** (GET /credits/<_clientID_>).
-* **Get Billing Information** (GET /bills/<_clientID_>).
+* **User Login** (POST /login).
 
+* **Resend OTP** (POST /resendOTP).
+* **Verify OTP** (POST /verifyOTP).
 """
+
 tags_metadata = [
     {
         "name": "User",
