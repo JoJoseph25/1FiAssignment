@@ -4,10 +4,11 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from configs.extensions import DBSession as db
-from descriptions.User import GET_user_responses, POST_user_signup 
-from dependencies.security import get_hashed_password, verify_password
-from utils.User import (check_user_exist, check_username_exist, add_user, 
-                        fetch_all_user, send_sms, verify_sms, send_email)
+from dependencies.security import verify_password
+from utils.User import (check_user_exist, check_username_exist,
+                        add_user, fetch_all_user, SMS_OTP, send_email)
+from descriptions.User import (GET_user_responses, POST_user_signup,
+                               POST_user_login, POST_resendOTP, POST_verifyOTP)
 from schemas.User import UserSingup, UserLogin, UserInfo, ResendOTP, VerifySingup
 
 router = APIRouter()
@@ -93,7 +94,7 @@ def signup(request: Request, data: UserSingup):
             request.app.logger.error(f"OPT: {otp}")
             # send verify SMS OTP
             if user.phone_number is not None:
-                otp_send_response = send_sms(user.phone_number, request.app)
+                otp_send_response = SMS_OTP().send_sms(user.phone_number, request.app)
                 request.app.logger.error(f"Status Code: {otp_send_response.status_code}")
                 request.app.logger.error(f"Status JSON: {otp_send_response.json()}")
             
@@ -137,7 +138,7 @@ def signup(request: Request, data: UserSingup):
     '/login',
     tags=["Login"], status_code=201,
     summary="User Login",
-    # responses={**POST_user_signup},
+    responses={**POST_user_login},
     )
 def login(request: Request, data: UserLogin):
     """
@@ -168,22 +169,17 @@ def login(request: Request, data: UserLogin):
                 'message': 'User not verified',
                 'status': False
             }
-        else:
-            hashed_password = get_hashed_password(data.password)
-            request.app.logger.error(f"Password: {hashed_password}")
-            request.app.logger.error(f"DB Password: {user.password}")
-            request.app.logger.error(f"PassCheck: {verify_password(data.password, user.password)}")
-            if verify_password(hashed_password, user.password):
-                status_code = 200
-                result = {
-                    'message': 'User Login Succesfull.',
-                    'status': False
+        elif verify_password(data.password, user.password):
+            status_code = 200
+            result = {
+                'message': 'User Login Successfull.',
+                'status': True
                 }
-            else:
-                status_code = 400
-                result = {
-                    'message': 'Incorrect Password',
-                    'status': False
+        else:
+            status_code = 400
+            result = {
+                'message': 'Incorrect Password',
+                'status': False
                 }
             
     except ValueError as e:
@@ -208,7 +204,7 @@ def login(request: Request, data: UserLogin):
     '/resendOTP',
     tags=["OTP"], status_code=201,
     summary="Send User OTP",
-    # responses={**POST_user_signup},
+    responses={**POST_resendOTP},
     )
 def resendOTP(request: Request, data: ResendOTP):
     """
@@ -227,7 +223,7 @@ def resendOTP(request: Request, data: ResendOTP):
         else:
             # send mobile OTP
             if data.phone_number:
-                otp_send_response = send_sms(data.phone_number, request.app)
+                otp_send_response = SMS_OTP().send_sms(data.phone_number, request.app)
                 if otp_send_response.json()['responseCode']==506:
                     status_code = 409
                     result = {
@@ -237,7 +233,7 @@ def resendOTP(request: Request, data: ResendOTP):
                 else:
                     status_code = 201
                     result = {
-                        'message': 'OTP Sent succesfully.',
+                        'message': 'OTP Sent successfully.',
                         'status': True
                     }
             
@@ -290,7 +286,7 @@ def resendOTP(request: Request, data: ResendOTP):
     '/verifyOTP',
     tags=["OTP"], status_code=201,
     summary="Verify User OTP",
-    # responses={**POST_user_signup},
+    responses={**POST_verifyOTP},
     )
 def verifyOTP(request: Request, data: VerifySingup):
     """
@@ -319,7 +315,7 @@ def verifyOTP(request: Request, data: VerifySingup):
                     }
                 else:
                     verificationID = verificationID.decode('utf-8')
-                    otp_send_response = verify_sms(data.otp, verificationID, request.app)
+                    otp_send_response = SMS_OTP().verify_sms(data.otp, verificationID, request.app)
                     if otp_send_response.json()['responseCode']==200:
                         status_code = 200
                         result = {
