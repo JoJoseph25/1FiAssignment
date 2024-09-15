@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:14-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - ./dbData:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=S3CR3T
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=oneFi
+
+  # DB Admin
+  db-admin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_PASSWORD=S3CR3T
+      - PGADMIN_DEFAULT_EMAIL=admin@onefi.com
+    ports:
+      - '8082:80'
+    volumes:
+      - ./db-admin-backup:/var/lib/pgadmin
+  
+  redis-insight:
+    container_name: redis-insight
+    image: redislabs/redisinsight
+    restart: always
+    ports:
+      - '9091:8001'
+    volumes:
+      - ./redisViz:/var/lib/redisViz
+
+  redis:
+      container_name: redis
+      image: redis:6.2-alpine
+      restart: always
+      ports:
+        - '6379:6379'
+      command: redis-server
+      volumes:
+        - ./cache:/data
+  
+  # backendAPI
+  backend:
+    container_name: backend
+    build:
+      context: ./
+      dockerfile: ./Dockerfile.backend
+    volumes:
+      - ./backendAPI:/usr/onefi/app
+    restart: always
+    command: python run.py
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env_file
+    

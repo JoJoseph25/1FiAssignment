@@ -1,0 +1,12 @@
+alembic==1.13.1
+bcrypt==4.0.1
+fastapi==0.110.2
+passlib==1.7.4
+psycopg2==2.9.9
+pydantic==2.7.1
+python-dotenv==1.0.1
+python-dev-tools==2023.3.24 
+python-jose[cryptography]==3.3.0
+redis==4.6.0
+SQLAlchemy==2.0.28
+uvicorn==0.29.0

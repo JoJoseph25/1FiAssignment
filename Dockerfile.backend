@@ -1,0 +1,33 @@
+# We Use an official Python runtime as a parent image
+FROM python:3.11-slim
+# The enviroment variable ensures that the python output is set straight
+# to the terminal with out buffering it first
+ENV PYTHONUNBUFFERED 1
+# create root directory for our project in the container
+
+# Install Python and Package Libraries
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+  libffi-dev \
+  libssl-dev \
+  libxml2-dev \
+  libxslt-dev \
+  libjpeg-dev \
+  libfreetype6-dev \
+  zlib1g-dev \
+  sshpass \
+  libpq-dev \
+  gcc \
+  && apt-get autoremove && apt-get autoclean
+
+RUN echo 'tzdata tzdata/Areas select Etc' | debconf-set-selections
+RUN echo 'tzdata tzdata/Zones/Etc select UTC' | debconf-set-selections
+RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y tzdata
+  
+RUN /usr/local/bin/python -m pip install --upgrade pip
+
+# Set the working directory 
+WORKDIR /usr/onefi/app
+# Copy the current directory contents into the container 
+COPY  ./backendAPI/requirements.txt /usr/onefi/app
+# Install any needed packages specified in requirements.txt
+RUN /usr/local/bin/python -m pip install -r requirements.txt
