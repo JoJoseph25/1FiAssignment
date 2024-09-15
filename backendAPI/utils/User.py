@@ -76,7 +76,7 @@ class SMS_OTP:
         app.redis.set(sms_otp_key, SMS_OTP, ex=60)
         return SMS_SendOTP_Response
     
-    def verify_sms(self, verificartionID, app):
+    def verify_sms(self, otp, verificartionID, app):
         SMS_AuthToken = self.get_auth_token(app)
         SMS_Verify_Headers = {'authToken': SMS_AuthToken}
         SMS_Verify_URL = f'{self.SMS_BaseURL}/verification/v3/validateOtp' 

@@ -92,13 +92,13 @@ def signup(request: Request, data: UserSingup):
             db.commit()
             otp = random.randint(100000, 999999)
             request.app.logger.error(f"OPT: {otp}")
-            # send verify SMS OTP
+            # send SMS OTP
             if user.phone_number is not None:
                 otp_send_response = SMS_OTP().send_sms(user.phone_number, request.app)
                 request.app.logger.error(f"Status Code: {otp_send_response.status_code}")
                 request.app.logger.error(f"Status JSON: {otp_send_response.json()}")
             
-            # send verify EMAIL OTP
+            # send EMAIL OTP
             if user.email is not None:
                 otp = random.randint(100000, 999999)
                 otp_send_response = send_email(user.full_name, user.email, otp, request.app)
