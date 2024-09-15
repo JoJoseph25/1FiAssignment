@@ -37,75 +37,54 @@ def add_user(data):
             phone_number=data.phone_number,
             full_name=data.full_name,
             username=data.username,
-            password=get_hashed_password(data.password),
+            password=data.password,
         )
     db.add(user)
     db.flush()
     return user
 
-def send_sms(phone_number, app):
-    SMS_BaseURL = 'https://cpaas.messagecentral.com'
 
-    # Get Auth token
-    import base64
-    CustomerId = 'C-8013DA91118B4DE'
-    og_password = 'Darkknight@06'
-    str_bytes = og_password.encode('utf-8')
-    encoded_bytes = base64.b64encode(str_bytes)
-    encoded_str = encoded_bytes.decode("utf-8")
-    SMS_AUTH_Headers = {'accept': '*/*'}
-    SMS_AuthTokenURL = f'{SMS_BaseURL}/auth/v1/authentication/token' 
-    SMS_AuthTokenURL+=f"?customerId={CustomerId}&key={encoded_str}&scope=NEW&country=91&email=jvjoseph73@gmail.com"
-    SMSAuthResponse = requests.get(SMS_AuthTokenURL, headers=SMS_AUTH_Headers)
-    if SMSAuthResponse.status_code!=200:
-        app.logger.error(f'Could not fetch SMS Auth Token: {SMSAuthResponse.json()}')
-    SMS_AuthToken = SMSAuthResponse.json()['token']
+class SMS_OTP:
+    def __init__(self) -> None:
+        self.SMS_Key = Config.SMS_KEY
+        self.SMS_Email = Config.SMS_EMAIL
+        self.CustomerID = Config.SMS_CUSTOMERID
+        self.SMS_BaseURL = 'https://cpaas.messagecentral.com'
     
-    # Send SMS OTP
-    SMS_Send_Headers = {'authToken': SMS_AuthToken}
-    SMS_SendOTP_URL = f'{SMS_BaseURL}/verification/v3/send' 
-    SMS_SendOTP_URL+=f"?flowType=SMS&countryCode=91&otpLength=6&mobileNumber={phone_number}"
-    SMS_SendOTP_Response = requests.post(SMS_SendOTP_URL, headers=SMS_Send_Headers)
-    if SMS_SendOTP_Response.status_code!=200:
-        app.logger.error(f'Could not send SMS OTP: {SMS_SendOTP_Response.json()}')
+    def get_auth_token(self, app):
+        SMS_AUTH_Headers = {'accept': '*/*'}
+        SMS_AuthTokenURL = f'{self.SMS_BaseURL}/auth/v1/authentication/token' 
+        SMS_AuthTokenURL+=f"?customerId={self.CustomerID}&key={self.SMS_Key}&scope=NEW&country=91&email={self.SMS_Email}"
+        SMSAuthResponse = requests.get(SMS_AuthTokenURL, headers=SMS_AUTH_Headers)
+        if SMSAuthResponse.status_code!=200:
+            app.logger.error(f'Could not fetch SMS Auth Token: {SMSAuthResponse.json()}')
+        SMS_AuthToken = SMSAuthResponse.json()['token']
+        return SMS_AuthToken
     
-    SMS_OTP = SMS_SendOTP_Response.json()['data']['verificationId']
+    def send_sms(self, phone_number, app):
+        SMS_AuthToken = self.get_auth_token(app)
+        SMS_Send_Headers = {'authToken': SMS_AuthToken}
+        SMS_SendOTP_URL = f'{self.SMS_BaseURL}/verification/v3/send' 
+        SMS_SendOTP_URL+=f"?flowType=SMS&countryCode=91&otpLength=6&mobileNumber={phone_number}"
+        SMS_SendOTP_Response = requests.post(SMS_SendOTP_URL, headers=SMS_Send_Headers)
+        if SMS_SendOTP_Response.status_code!=200:
+            app.logger.error(f'Could not send SMS OTP: {SMS_SendOTP_Response.json()}')
+
+        SMS_OTP = SMS_SendOTP_Response.json()['data']['verificationId']    
+        # set OTP in redis
+        sms_otp_key = f"OTP:SMS:{phone_number}"
+        app.redis.set(sms_otp_key, SMS_OTP, ex=60)
+        return SMS_SendOTP_Response
     
-    # set OTP in redis
-    sms_otp_key = f"OTP:SMS:{phone_number}"
-    app.redis.set(sms_otp_key, SMS_OTP, ex=60)
-    return SMS_SendOTP_Response
-
-
-def verify_sms(otp, verificartionID, app):
-    SMS_BaseURL = 'https://cpaas.messagecentral.com'
-
-    # get SMS Auth token
-    import base64
-    CustomerId = 'C-8013DA91118B4DE'
-    og_password = 'Darkknight@06'
-    str_bytes = og_password.encode('utf-8')
-    encoded_bytes = base64.b64encode(str_bytes)
-    encoded_str = encoded_bytes.decode("utf-8")
-    SMS_AUTH_Headers = {'accept': '*/*'}
-    SMS_AuthTokenURL = f'{SMS_BaseURL}/auth/v1/authentication/token' 
-    SMS_AuthTokenURL+=f"?customerId={CustomerId}&key={encoded_str}&scope=NEW&country=91&email=jvjoseph73@gmail.com"
-    SMSAuthResponse = requests.get(SMS_AuthTokenURL, headers=SMS_AUTH_Headers)
-    if SMSAuthResponse.status_code!=200:
-        app.logger.error(f'Could not fetch SMS Auth Token: {SMSAuthResponse.json()}')
-    SMS_AuthToken = SMSAuthResponse.json()['token']
-    
-    # Send Validaet OTP
-    SMS_Verify_Headers = {'authToken': SMS_AuthToken}
-    SMS_Verify_URL = f'{SMS_BaseURL}/verification/v3/validateOtp' 
-    SMS_Verify_URL+=f"?verificationId={verificartionID}&code={otp}"
-    SMS_Verify_Response = requests.get(SMS_Verify_URL, headers=SMS_Verify_Headers)
-    if SMS_Verify_Response.status_code!=200:
-        app.logger.error(f'Could not send SMS OTP: {SMS_Verify_Response.json()}')
-    
-    return SMS_Verify_Response
-
-
+    def verify_sms(self, verificartionID, app):
+        SMS_AuthToken = self.get_auth_token(app)
+        SMS_Verify_Headers = {'authToken': SMS_AuthToken}
+        SMS_Verify_URL = f'{self.SMS_BaseURL}/verification/v3/validateOtp' 
+        SMS_Verify_URL+=f"?verificationId={verificartionID}&code={otp}"
+        SMS_Verify_Response = requests.get(SMS_Verify_URL, headers=SMS_Verify_Headers)
+        if SMS_Verify_Response.status_code!=200:
+            app.logger.error(f'Could not send SMS OTP: {SMS_Verify_Response.json()}')
+        return SMS_Verify_Response
 
 def send_email(name, email, otp, app):
     EMAIL_BaseURL = 'https://control.msg91.com/api/v5/email/send'
