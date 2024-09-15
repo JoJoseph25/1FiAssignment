@@ -32,6 +32,10 @@ class Config:
         # OTP Service
         OTP_AUTH_KEY="430312Ahar2DJs66e4e918P1"
         EMAIL_TEMPLATE_ID = "global_otp"
+        SMS_CUSTOMERID = 'C-8013DA91118B4DE'
+        SMS_KEY = 'RGFya2tuaWdodEAwNg=='
+        SMS_EMAIL = 'jvjoseph73@gmail.com'
+        
 
     except Exception as e:
         logging.error("Error reading configurations")

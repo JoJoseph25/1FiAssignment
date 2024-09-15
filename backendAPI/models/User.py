@@ -30,13 +30,6 @@ class Users(dbModel):
         self.number_verified = False
         self.active = False
 
-    def check_password(self, password: str) -> bool:
-        """
-        Verifies if the provided password matches the stored hashed password.
-        Convert the stored password from string back to bytes before verification.
-        """
-        # bcrypt.checkpw compares both provided and stored password in bytes
-        return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
     
     def __repr__(self):
         return f'<Users {self.username}>'
