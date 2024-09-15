@@ -31,3 +31,5 @@ WORKDIR /usr/onefi/app
 COPY  ./backendAPI/requirements.txt /usr/onefi/app
 # Install any needed packages specified in requirements.txt
 RUN /usr/local/bin/python -m pip install -r requirements.txt
+
+EXPOSE 5000
