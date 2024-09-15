@@ -6,8 +6,8 @@ class Config:
     try:
         # Tracing Configs
         SERVICE_NAME = "backendAPI"
-        URL_Prefix = "/backend_api/v1"
-        DOCS_URL_PREFIX="/backend_api/v1/internal"
+        URL_Prefix = "/v1"
+        DOCS_URL_PREFIX="/v1/internal"
         DEBUG = bool(os.environ.get("DEBUG", True))
 
         # Token Crreation 
